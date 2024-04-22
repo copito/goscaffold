@@ -159,7 +159,20 @@ func Run(cmd *cobra.Command, args []string) {
 		fmt.Println("Could not create output folder")
 		os.Exit(1)
 	}
-	// defer os.RemoveAll(outputBasePath)
+
+	// rollback output folder
+	rollbackChan := make(chan interface{}, 1)
+	rollbackOutput := func(rollbackChan chan interface{}, outputBasePath string) {
+		defer close(rollbackChan)
+		<-rollbackChan
+
+		err := os.RemoveAll(outputBasePath)
+		if err != nil {
+			fmt.Println("Error cleaning up output folder...")
+			os.Exit(1)
+		}
+	}
+	go rollbackOutput(rollbackChan, outputBasePath)
 
 	// 5. Walk through every folder/file and change names + file data
 	err = filepath.Walk(runPath, func(pathValue string, info os.FileInfo, err error) error {
@@ -204,15 +217,24 @@ func Run(cmd *cobra.Command, args []string) {
 		// TODO: Copy file to output folder -> also transforming using Jinja2
 		fmt.Println(pathValue, info.Size(), info.Mode().IsDir(), info.Mode().IsRegular())
 		deltaPath := core.DeltaRelativePath(runPath, pathValue)
+		newFullPath := path.Join(outputBasePath, deltaPath)
 
 		switch mode := info.Mode(); {
 		case mode.IsDir():
 			// Folder/Directory
 			// TODO: Create folder
+			err = os.MkdirAll(newFullPath, os.FileMode(0o755))
+			if err != nil {
+				rollbackChan <- true
+			}
 
 		case mode.IsRegular():
 			// File
-			core.PathCopy(pathValue, path.Join(outputBasePath, deltaPath))
+			bytesProcessed, err := core.PathCopy(pathValue, newFullPath)
+			if err != nil {
+				rollbackChan <- true
+			}
+			fmt.Print("Processed: ", bytesProcessed)
 		}
 
 		// core.PathCopy(pathValue, out)

@@ -19,7 +19,7 @@ func main() {
 
 	// Force Stop at any point (with termination signals)
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 
 	go func(sig chan os.Signal) {
 		<-sig

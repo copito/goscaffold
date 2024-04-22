@@ -3,5 +3,5 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("My name is {{ scaffold.name }}")
+	fmt.Println("My name is {{ scaffold.author }}")
 }
