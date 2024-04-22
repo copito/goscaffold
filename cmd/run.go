@@ -3,6 +3,7 @@ package command
 import (
 	"github.com/copito/goscaffold/controller"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var RunCmd = &cobra.Command{
@@ -13,6 +14,12 @@ var RunCmd = &cobra.Command{
 }
 
 func init() {
-	RunCmd.Flags().IntP("number", "n", 10, "A help for number")
+	// RunCmd.Flags().IntP("number", "n", 10, "A help for number")
 	// RunCmd.PersistentFlags().StringVar(&developer, "developer", "Unknown Developer!", "Developer name.")
+
+	// persistent flags
+	RunCmd.PersistentFlags().StringP("config", "c", "./scaffold.yaml", "configuration file")
+
+	// connect to viper
+	viper.BindPFlag("config", RunCmd.PersistentFlags().Lookup("config"))
 }

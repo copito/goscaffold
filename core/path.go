@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kluctl/go-jinja2"
 )
 
 func FileNameWithoutExtension(fileName string) string {
@@ -51,6 +53,36 @@ func PathCopy(src, dst string) (int64, error) {
 	defer destination.Close()
 	nBytes, err := io.Copy(destination, source)
 	return nBytes, err
+}
+
+// RenderFileContent renders a file using the jinja templated engine
+func RenderFileContent(src string, jj *jinja2.Jinja2) error {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	dataString := string(data)
+	renderedString, err := jj.RenderString(dataString)
+	if err != nil {
+		return err
+	}
+
+	os.WriteFile(src, []byte(renderedString), sourceFileStat.Mode().Perm())
+	return nil
 }
 
 // Get delta relative path

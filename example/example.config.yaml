@@ -3,7 +3,7 @@ other_variables: "blah"
 prompt:
   project_name: 
     order: 1
-    default: "Test Project"
+    default: "test_project"
     options: []
     validation: []
     allow_edit: true

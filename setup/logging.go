@@ -2,12 +2,12 @@ package setup
 
 import (
 	"log/slog"
-	"os"
 )
 
-func SetupLogging() *slog.Logger {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	// logger.Info("Initialized logging", slog.String("side", "client"))
+func SetupLogging(withColor bool, level slog.Level) *slog.Logger {
+	handler := NewCustomLogHandler(withColor, level)
+	// logger := slog.New(slog.New(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(handler)
 
 	return logger
 }

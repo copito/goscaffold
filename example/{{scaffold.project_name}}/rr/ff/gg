@@ -1,4 +1,4 @@
-{% if is_alive == 'TRUE' %}
+{% if scaffold.is_alive == 'TRUE' %}
 
     {% for i in range(10) %}
         {{i}} I AM ALIVE!!!

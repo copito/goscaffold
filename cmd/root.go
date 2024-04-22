@@ -1,9 +1,12 @@
 package command
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
+	"github.com/copito/goscaffold/setup"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -16,6 +19,32 @@ var rootCmd = &cobra.Command{
 One can use scaffold to generate projects based on YAML configurations`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
+	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Check if color should be used
+		useNoColor, _ := cmd.Flags().GetBool("no-color")
+		useVerbose, _ := cmd.Flags().GetBool("verbose")
+		isDryRun, _ := cmd.Flags().GetBool("dry-run")
+
+		// Setup Logging
+		lvl := new(slog.LevelVar)
+		lvl.Set(slog.LevelWarn)
+		if useVerbose {
+			lvl.Set(slog.LevelInfo)
+		}
+		if isDryRun {
+			lvl.Set(slog.LevelDebug)
+		}
+		logger := setup.SetupLogging(!useNoColor, lvl.Level())
+
+		// Setup all configuration for this application
+		setup.SetupConfig(logger)
+
+		// Create a new context with the logger attached
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, "logger", logger)
+		ctx = context.WithValue(ctx, "dry_run", isDryRun)
+		cmd.SetContext(ctx)
 	},
 }
 
@@ -31,12 +60,14 @@ func init() {
 	viper.SetDefault("garbage-collect", false)
 
 	// persistent flags
-	RunCmd.PersistentFlags().StringP("config", "c", "./scaffold.yaml", "configuration file")
-	RunCmd.PersistentFlags().StringP("token", "t", "", "Auth token used when connecting to a secure Hoarder")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "activate verbose mode for more details")
+	rootCmd.PersistentFlags().BoolP("no-color", "n", false, "disable colors on logs/debugs")
+	rootCmd.PersistentFlags().BoolP("dry-run", "d", false, "allows to test command without side-effects")
 
 	// connect to viper
-	viper.BindPFlag("config", RunCmd.PersistentFlags().Lookup("config"))
-	viper.BindPFlag("token", RunCmd.PersistentFlags().Lookup("token"))
+	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	viper.BindPFlag("no-color", rootCmd.PersistentFlags().Lookup("no-color"))
+	viper.BindPFlag("dry-run", rootCmd.PersistentFlags().Lookup("dry-run"))
 
 	// local flags;
 	// RunCmd.Flags().StringVar(&config, "config", "", "/path/to/config.yml")

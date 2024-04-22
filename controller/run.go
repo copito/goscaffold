@@ -3,29 +3,45 @@ package controller
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/copito/goscaffold/core"
 	"github.com/copito/goscaffold/entity"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/kluctl/go-jinja2"
 )
 
 var (
 	rgxHooksFolder *regexp.Regexp = regexp.MustCompile(`\/hooks$`)
 	rgxHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt|pre_gen_project|post_gen_project)\\.(py|go|sh)$`)
+
+	rgxPrePromptHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt)\\.(py|go|sh)$`)
+	rgxPreProjectHooksFile  *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_gen_project)\\.(py|go|sh)$`)
+	rgxPostProjectHooksFile *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(post_gen_project)\\.(py|go|sh)$`)
 )
 
 func Run(cmd *cobra.Command, args []string) {
+	// Get Logger
+	logger := cmd.Context().Value("logger").(*slog.Logger)
+	logger.Debug("Testing debug logger")
+	logger.Info("Testing info logger")
+	logger.Warn("Testing warn logger")
+	logger.Error("Testing error logger")
+
 	// 1. Getting Path
+	logger.Debug("Getting path provided...")
 	var runPath string
 	if len(args) == 0 {
-		fmt.Println("No path provided, assuming path is current path: .")
+		logger.Info("No path provided, assuming path is current path: .")
 		runPath = "."
 	} else {
 		runPath = args[0]
@@ -34,16 +50,17 @@ func Run(cmd *cobra.Command, args []string) {
 	// Check if path exists
 	isExists, err := core.PathExists(runPath)
 	if err != nil {
-		fmt.Printf("Path provided does not exist...")
+		logger.Error("Path provided does not exist...")
 		os.Exit(1)
 	}
 
 	if !isExists {
-		fmt.Printf("Path provided does not exist...")
+		logger.Error("Path provided does not exist...")
 		os.Exit(1)
 	}
 
 	// 2. Load config file
+	logger.Debug("Loading configuration file...")
 	configFilePath, err := cmd.Flags().GetString("config")
 	if err != nil {
 		configFilePath = "./config.yaml"
@@ -54,7 +71,7 @@ func Run(cmd *cobra.Command, args []string) {
 	basePath := core.FileNameWithoutExtension(path.Base(configFilePath))
 
 	if basePath == "base" && extension == "yaml" {
-		fmt.Println("base.yaml is the only name that cannot be used for the configuration file")
+		logger.Error("base.yaml is the only name that cannot be used for the configuration file")
 		os.Exit(1)
 	}
 
@@ -67,7 +84,7 @@ func Run(cmd *cobra.Command, args []string) {
 
 	err = viper.ReadInConfig()
 	if err != nil {
-		fmt.Println("Unable to find and/or load config file:", configFilePath)
+		logger.Error("Unable to find and/or load config file", "config", configFilePath)
 		os.Exit(1)
 	}
 
@@ -75,7 +92,7 @@ func Run(cmd *cobra.Command, args []string) {
 	promptConfig := entity.Prompt{}
 	err = viper.Unmarshal(&promptConfig)
 	if err != nil {
-		fmt.Println("Unable to load config file:", configFilePath)
+		logger.Error("Unable to load config file", "config", configFilePath)
 		os.Exit(1)
 	}
 
@@ -92,13 +109,12 @@ func Run(cmd *cobra.Command, args []string) {
 
 	paramChoice := make(map[string]string)
 
-	// TODO: ask questions about config (settle variables)
+	// ask questions about config (settle variables)
 	// Loop through all prompt based configs (based on data type)
-	for index, key := range keys {
+	for _, key := range keys {
 
 		item := promptConfig.Items[key]
 		item.Key = key
-		fmt.Println("Running index: ", index, key)
 
 		// Private variables check (_)
 		if strings.HasPrefix(key, "_") {
@@ -136,28 +152,44 @@ func Run(cmd *cobra.Command, args []string) {
 			paramChoice[key] = result
 			continue
 		default:
-			fmt.Printf("unexpected type %T", v)
+			logger.Error("unexpected type %T", v)
 			os.Exit(1)
 		}
 	}
 
+	jj, err := jinja2.NewJinja2("FolderFileName", 1, jinja2.WithGlobal("scaffold", paramChoice))
+	if err != nil {
+		logger.Error("Unable prepare chosen parameters for Jinja Templating...")
+		os.Exit(1)
+	}
+	defer jj.Close()
+
 	// TODO: send it to a file (if running under debug)
-	fmt.Println("New Compiled Results: ", paramChoice)
+	logger.Debug("New Compiled Results", "params", paramChoice)
 
 	// 3. pre-hooks
-	hasPreGenProjectHook, _ := core.PathExists(path.Join(runPath, "hooks", "pre_gen_project.go"))
+	preHookPath := path.Join(runPath, "hooks", "pre_gen_project.go")
+	hasPreGenProjectHook, _ := core.PathExists(preHookPath)
 	if hasPreGenProjectHook {
-		fmt.Println("Running pre_gen_hook...")
+		logger.Info("Running pre_gen_hook...")
+		err = core.RenderFileContent(preHookPath, jj)
+		if err != nil {
+			logger.Error("Rendering pre-hook caused the application to crash...")
+			os.Exit(1)
+		}
 	}
 
 	// 4. Generate output folder to add output here
+	isDryRun, _ := cmd.Flags().GetBool("dry-run")
 	outputFolder := "output"
 	outputBasePath := path.Join(runPath, outputFolder)
-	fmt.Println("Output Path =>", outputBasePath)
-	err = os.Mkdir(outputBasePath, os.FileMode(0o755))
-	if err != nil {
-		fmt.Println("Could not create output folder")
-		os.Exit(1)
+	logger.Info(fmt.Sprintf("Output Path => %s", outputBasePath))
+	if !isDryRun {
+		err = os.Mkdir(outputBasePath, os.FileMode(0o755))
+		if err != nil {
+			logger.Error("Could not create output folder")
+			os.Exit(1)
+		}
 	}
 
 	// rollback output folder
@@ -166,9 +198,10 @@ func Run(cmd *cobra.Command, args []string) {
 		defer close(rollbackChan)
 		<-rollbackChan
 
+		logger.Info("Invoked rollback - removing output folder...")
 		err := os.RemoveAll(outputBasePath)
 		if err != nil {
-			fmt.Println("Error cleaning up output folder...")
+			logger.Error("Error cleaning up output folder...")
 			os.Exit(1)
 		}
 	}
@@ -215,26 +248,49 @@ func Run(cmd *cobra.Command, args []string) {
 		}
 
 		// TODO: Copy file to output folder -> also transforming using Jinja2
-		fmt.Println(pathValue, info.Size(), info.Mode().IsDir(), info.Mode().IsRegular())
+		logger.Info(pathValue, "size", info.Size(), "is_dir", info.Mode().IsDir(), "is_file", info.Mode().IsRegular())
 		deltaPath := core.DeltaRelativePath(runPath, pathValue)
 		newFullPath := path.Join(outputBasePath, deltaPath)
+
+		// Jinja template path name
+		newFullPathRendered, err := jj.RenderString(newFullPath)
+		if err != nil {
+			// rollbackChan <- true
+			fmt.Println("rendered new path name but failed!!")
+			os.Exit(1)
+		}
+
+		logger.Info("jinja template", "templated", newFullPath, "rendered", newFullPathRendered)
 
 		switch mode := info.Mode(); {
 		case mode.IsDir():
 			// Folder/Directory
-			// TODO: Create folder
-			err = os.MkdirAll(newFullPath, os.FileMode(0o755))
+			// Create folder
+			err = os.MkdirAll(newFullPathRendered, os.FileMode(0o755))
 			if err != nil {
 				rollbackChan <- true
+				time.Sleep(time.Second)
+				os.Exit(1)
 			}
 
 		case mode.IsRegular():
 			// File
-			bytesProcessed, err := core.PathCopy(pathValue, newFullPath)
+			bytesProcessed, err := core.PathCopy(pathValue, newFullPathRendered)
 			if err != nil {
 				rollbackChan <- true
+				time.Sleep(time.Second)
+				os.Exit(1)
 			}
 			fmt.Print("Processed: ", bytesProcessed)
+
+			// Render this file content
+			err = core.RenderFileContent(newFullPathRendered, jj)
+			if err != nil {
+				fmt.Println("rendering file (using jinja) failed!!")
+				rollbackChan <- true
+				time.Sleep(time.Second)
+				os.Exit(1)
+			}
 		}
 
 		// core.PathCopy(pathValue, out)
