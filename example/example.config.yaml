@@ -10,7 +10,7 @@ prompt:
     hide_entered: false
   author: 
     order: 2
-    default: "Gabriel"
+    default: "copito"
     options: []
     validation: []
     allow_edit: true
@@ -25,7 +25,7 @@ prompt:
   age: 
     order: 4
     default: 44
-  _is_alive: 
+  _hidden_variable: 
     order: 5
     default: 22.5
   is_alive: 

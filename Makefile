@@ -36,3 +36,9 @@ release: clean
 	GOOS=linux GOARCH=amd64 $(GOBUILD) -o bin/$(BINARY_NAME)-linux-amd64 -v
 	GOOS=windows GOARCH=amd64 $(GOBUILD) -o bin/$(BINARY_NAME)-windows-amd64.exe -v
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) -o bin/$(BINARY_NAME)-darwin-amd64 -v
+
+
+# Testing one example
+.PHONY: example1
+example1:
+	bin/${BINARY_NAME} run ./example -c example/example.config.yaml
