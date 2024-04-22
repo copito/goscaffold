@@ -42,3 +42,7 @@ release: clean
 .PHONY: example1
 example1:
 	bin/${BINARY_NAME} run ./example -c example/example.config.yaml
+
+.PHONY: clean_example1
+clean_example1:
+	rm -rf ./example/output

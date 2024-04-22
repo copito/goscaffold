@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -22,7 +23,7 @@ import (
 
 var (
 	rgxHooksFolder *regexp.Regexp = regexp.MustCompile(`\/hooks$`)
-	rgxHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt|pre_gen_project|post_gen_project)\\.(py|go|sh)$`)
+	rgxHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\).*$`)
 
 	// rgxPrePromptHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt)\\.(py|go|sh)$`)
 	// rgxPreProjectHooksFile  *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_gen_project)\\.(py|go|sh)$`)
@@ -32,10 +33,6 @@ var (
 func Run(cmd *cobra.Command, args []string) {
 	// Get Logger
 	logger := cmd.Context().Value("logger").(*slog.Logger)
-	// logger.Debug("Testing debug logger")
-	// logger.Info("Testing info logger")
-	// logger.Warn("Testing warn logger")
-	// logger.Error("Testing error logger")
 
 	// 1. Getting Path
 	logger.Debug("Getting path provided...")
@@ -111,6 +108,8 @@ func Run(cmd *cobra.Command, args []string) {
 
 	// ask questions about config (settle variables)
 	// Loop through all prompt based configs (based on data type)
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, "logger", logger)
 	for _, key := range keys {
 
 		item := promptConfig.Items[key]
@@ -125,30 +124,30 @@ func Run(cmd *cobra.Command, args []string) {
 		// Request Data from Users
 		if len(item.Options) >= 1 {
 			itemOptions := core.InterfaceSliceToStringSlice(item.Options)
-			result := core.SingleSelectPrompt(fmt.Sprintf("Select %s [%s]", key, item.DefaultValue.(string)), itemOptions)
+			result := core.SingleSelectPrompt(ctx, fmt.Sprintf("Select %s [%s]", key, item.DefaultValue.(string)), itemOptions)
 			paramChoice[key] = result
 			continue
 		}
 
 		switch v := item.DefaultValue.(type) {
 		case string:
-			result := core.StringPrompt(fmt.Sprintf("Select %s [%s]", key, v), v)
+			result := core.StringPrompt(ctx, fmt.Sprintf("Select %s [%s]", key, v), v)
 			paramChoice[key] = result
 			continue
 		case int:
-			result := core.NumberPrompt(fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
+			result := core.NumberPrompt(ctx, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
 			paramChoice[key] = result
 			continue
 		case float32:
-			result := core.NumberPrompt(fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
+			result := core.NumberPrompt(ctx, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
 			paramChoice[key] = result
 			continue
 		case float64:
-			result := core.NumberPrompt(fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
+			result := core.NumberPrompt(ctx, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
 			paramChoice[key] = result
 			continue
 		case bool:
-			result := core.BoolPrompt(fmt.Sprintf("Select %s [%t]", key, item.DefaultValue), "FALSE", false)
+			result := core.BoolPrompt(ctx, fmt.Sprintf("Select %s [%t]", key, item.DefaultValue), "FALSE", false)
 			paramChoice[key] = result
 			continue
 		default:
@@ -247,7 +246,7 @@ func Run(cmd *cobra.Command, args []string) {
 			return nil
 		}
 
-		// TODO: Copy file to output folder -> also transforming using Jinja2
+		// Copy file to output folder -> also transforming using Jinja2
 		logger.Info(pathValue, "size", info.Size(), "is_dir", info.Mode().IsDir(), "is_file", info.Mode().IsRegular())
 		deltaPath := core.DeltaRelativePath(runPath, pathValue)
 		newFullPath := path.Join(outputBasePath, deltaPath)
@@ -277,11 +276,12 @@ func Run(cmd *cobra.Command, args []string) {
 			// File
 			bytesProcessed, err := core.PathCopy(pathValue, newFullPathRendered)
 			if err != nil {
+				logger.Error("failed to copy file to output path", "err", err)
 				rollbackChan <- true
 				time.Sleep(time.Second)
 				os.Exit(1)
 			}
-			fmt.Print("Processed: ", bytesProcessed)
+			logger.Debug("Processed file copy", "file", pathValue, "bytes", bytesProcessed)
 
 			// Render this file content
 			err = core.RenderFileContent(newFullPathRendered, jj)
@@ -292,9 +292,6 @@ func Run(cmd *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 		}
-
-		// core.PathCopy(pathValue, out)
-		// file := path.Base(pathValue)
 
 		return nil
 	})
@@ -308,5 +305,5 @@ func Run(cmd *cobra.Command, args []string) {
 		fmt.Println("Running post_gen_project...")
 	}
 
-	//
+	logger.Info("🚀🚀 Scaffold ran successfully! 🚀🚀")
 }

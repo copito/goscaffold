@@ -1,8 +1,9 @@
 package core
 
 import (
+	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 
@@ -10,7 +11,8 @@ import (
 )
 
 // NumberPrompt asks a numerical questions using the label.
-func NumberPrompt(label string, defaultValue string) string {
+func NumberPrompt(ctx context.Context, label string, defaultValue string) string {
+	logger := ctx.Value("logger").(*slog.Logger)
 	validate := func(input string) error {
 		_, err := strconv.ParseFloat(input, 64)
 		if err != nil {
@@ -29,17 +31,17 @@ func NumberPrompt(label string, defaultValue string) string {
 
 	result, err := prompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		logger.Error("Prompt failed", "err", err)
 		return ""
 	}
 
-	// fmt.Printf("You choose %q\n", result)
-
+	logger.Debug("You selected a value", "value", result)
 	return result
 }
 
 // StringPrompt asks a open string questions using the label.
-func StringPrompt(label string, defaultValue string) string {
+func StringPrompt(ctx context.Context, label string, defaultValue string) string {
+	logger := ctx.Value("logger").(*slog.Logger)
 	validate := func(input string) error {
 		return nil
 	}
@@ -50,22 +52,21 @@ func StringPrompt(label string, defaultValue string) string {
 		Default:     defaultValue,
 		AllowEdit:   true,
 		HideEntered: false,
-		
 	}
 
 	result, err := prompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		logger.Error("Prompt failed", "err", err)
 		return ""
 	}
 
-	// fmt.Printf("You choose %q\n", result)
-
+	logger.Debug("You selected a value", "value", result)
 	return result
 }
 
 // PasswordPrompt asks a password questions using the label.
-func PasswordPrompt(label string, defaultValue string) string {
+func PasswordPrompt(ctx context.Context, label string, defaultValue string) string {
+	logger := ctx.Value("logger").(*slog.Logger)
 	validate := func(input string) error {
 		if len(input) < 6 {
 			return errors.New("password must have more than 6 characters")
@@ -83,17 +84,17 @@ func PasswordPrompt(label string, defaultValue string) string {
 
 	result, err := prompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		logger.Error("Prompt failed", "err", err)
 		return ""
 	}
 
-	// fmt.Printf("You choose %q\n", result)
-
+	logger.Debug("You selected a value", "value", result)
 	return result
 }
 
 // BoolPrompt asks a boolean questions using the label.
-func BoolPrompt(label string, defaultValue string, isOpen bool) string {
+func BoolPrompt(ctx context.Context, label string, defaultValue string, isOpen bool) string {
+	logger := ctx.Value("logger").(*slog.Logger)
 	validate := func(input string) error {
 		matched, err := regexp.MatchString("(?i)^(true|false|yes|no|y|n)", input)
 		if err != nil {
@@ -108,7 +109,7 @@ func BoolPrompt(label string, defaultValue string, isOpen bool) string {
 	if isOpen {
 		prompt := promptui.Prompt{
 			Label:       label,
-			Default:     "false",
+			Default:     "FALSE",
 			Validate:    validate,
 			AllowEdit:   true,
 			HideEntered: false,
@@ -116,11 +117,10 @@ func BoolPrompt(label string, defaultValue string, isOpen bool) string {
 
 		result, err := prompt.Run()
 		if err != nil {
-			fmt.Printf("Prompt failed %v\n", err)
-			return ""
+			logger.Error("Prompt failed", "err", err)
+			return "FALSE"
 		}
 
-		fmt.Printf("You choose %q\n", result)
 		matched, err := regexp.MatchString("(?i)^(true|yes|y)", result)
 		if err != nil {
 			panic("error regex")
@@ -141,16 +141,17 @@ func BoolPrompt(label string, defaultValue string, isOpen bool) string {
 
 	_, result, err := prompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		logger.Error("Prompt failed", "err", err)
 		return ""
 	}
 
-	fmt.Printf("You choose %q\n", result)
+	logger.Debug("You selected a value", "value", result)
 	return result
 }
 
 // SelectPrompt asks a single select questions using the label.
-func SingleSelectPrompt(label string, items []string) string {
+func SingleSelectPrompt(ctx context.Context, label string, items []string) string {
+	logger := ctx.Value("logger").(*slog.Logger)
 	prompt := promptui.Select{
 		Label: label,
 		Items: items,
@@ -158,11 +159,10 @@ func SingleSelectPrompt(label string, items []string) string {
 
 	_, result, err := prompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		logger.Error("Prompt failed", "err", err)
 		return ""
 	}
 
-	// fmt.Printf("You choose %q\n", result)
-
+	logger.Debug("You selected a value", "value", result)
 	return result
 }
