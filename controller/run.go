@@ -24,18 +24,18 @@ var (
 	rgxHooksFolder *regexp.Regexp = regexp.MustCompile(`\/hooks$`)
 	rgxHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt|pre_gen_project|post_gen_project)\\.(py|go|sh)$`)
 
-	rgxPrePromptHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt)\\.(py|go|sh)$`)
-	rgxPreProjectHooksFile  *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_gen_project)\\.(py|go|sh)$`)
-	rgxPostProjectHooksFile *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(post_gen_project)\\.(py|go|sh)$`)
+	// rgxPrePromptHooksFile   *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_prompt)\\.(py|go|sh)$`)
+	// rgxPreProjectHooksFile  *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(pre_gen_project)\\.(py|go|sh)$`)
+	// rgxPostProjectHooksFile *regexp.Regexp = regexp.MustCompile(`hooks(\/|\\)(post_gen_project)\\.(py|go|sh)$`)
 )
 
 func Run(cmd *cobra.Command, args []string) {
 	// Get Logger
 	logger := cmd.Context().Value("logger").(*slog.Logger)
-	logger.Debug("Testing debug logger")
-	logger.Info("Testing info logger")
-	logger.Warn("Testing warn logger")
-	logger.Error("Testing error logger")
+	// logger.Debug("Testing debug logger")
+	// logger.Info("Testing info logger")
+	// logger.Warn("Testing warn logger")
+	// logger.Error("Testing error logger")
 
 	// 1. Getting Path
 	logger.Debug("Getting path provided...")
