@@ -1,0 +1,33 @@
+other_variables: "blah"
+
+prompt:
+  project_name: 
+    order: 1
+    default: "Test Project"
+    options: []
+    validation: []
+    allow_edit: true
+    hide_entered: false
+  author: 
+    order: 2
+    default: "Gabriel"
+    options: []
+    validation: []
+    allow_edit: true
+    hide_entered: false
+  license: 
+    order: 3
+    default: "MIT"
+    options: ["MIT", "BSD-3", "GNU GPL v3.0", "Apache Software License 2.0"]
+    validation: []
+    allow_edit: true
+    hide_entered: false
+  age: 
+    order: 4
+    default: 44
+  _is_alive: 
+    order: 5
+    default: 22.5
+  is_alive: 
+    order: 6
+    default: true 

@@ -1,0 +1,4 @@
+{
+    "author": "{{ scaffold.author }}",
+    "license": "{{ scaffold.license }}"
+}
