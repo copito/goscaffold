@@ -1,9 +1,9 @@
 package core
 
 import (
-	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"regexp"
 	"strconv"
 
@@ -11,8 +11,7 @@ import (
 )
 
 // NumberPrompt asks a numerical questions using the label.
-func NumberPrompt(ctx context.Context, label string, defaultValue string) string {
-	logger := ctx.Value("logger").(*slog.Logger)
+func NumberPrompt(logger *slog.Logger, label string, defaultValue string) string {
 	validate := func(input string) error {
 		_, err := strconv.ParseFloat(input, 64)
 		if err != nil {
@@ -32,6 +31,7 @@ func NumberPrompt(ctx context.Context, label string, defaultValue string) string
 	result, err := prompt.Run()
 	if err != nil {
 		logger.Error("Prompt failed", "err", err)
+		os.Exit(1)
 		return ""
 	}
 
@@ -40,8 +40,7 @@ func NumberPrompt(ctx context.Context, label string, defaultValue string) string
 }
 
 // StringPrompt asks a open string questions using the label.
-func StringPrompt(ctx context.Context, label string, defaultValue string) string {
-	logger := ctx.Value("logger").(*slog.Logger)
+func StringPrompt(logger *slog.Logger, label string, defaultValue string) string {
 	validate := func(input string) error {
 		return nil
 	}
@@ -57,6 +56,7 @@ func StringPrompt(ctx context.Context, label string, defaultValue string) string
 	result, err := prompt.Run()
 	if err != nil {
 		logger.Error("Prompt failed", "err", err)
+		os.Exit(1)
 		return ""
 	}
 
@@ -65,8 +65,7 @@ func StringPrompt(ctx context.Context, label string, defaultValue string) string
 }
 
 // PasswordPrompt asks a password questions using the label.
-func PasswordPrompt(ctx context.Context, label string, defaultValue string) string {
-	logger := ctx.Value("logger").(*slog.Logger)
+func PasswordPrompt(logger *slog.Logger, label string, defaultValue string) string {
 	validate := func(input string) error {
 		if len(input) < 6 {
 			return errors.New("password must have more than 6 characters")
@@ -85,6 +84,7 @@ func PasswordPrompt(ctx context.Context, label string, defaultValue string) stri
 	result, err := prompt.Run()
 	if err != nil {
 		logger.Error("Prompt failed", "err", err)
+		os.Exit(1)
 		return ""
 	}
 
@@ -93,8 +93,7 @@ func PasswordPrompt(ctx context.Context, label string, defaultValue string) stri
 }
 
 // BoolPrompt asks a boolean questions using the label.
-func BoolPrompt(ctx context.Context, label string, defaultValue string, isOpen bool) string {
-	logger := ctx.Value("logger").(*slog.Logger)
+func BoolPrompt(logger *slog.Logger, label string, defaultValue string, isOpen bool) string {
 	validate := func(input string) error {
 		matched, err := regexp.MatchString("(?i)^(true|false|yes|no|y|n)", input)
 		if err != nil {
@@ -118,6 +117,7 @@ func BoolPrompt(ctx context.Context, label string, defaultValue string, isOpen b
 		result, err := prompt.Run()
 		if err != nil {
 			logger.Error("Prompt failed", "err", err)
+			os.Exit(1)
 			return "FALSE"
 		}
 
@@ -142,6 +142,7 @@ func BoolPrompt(ctx context.Context, label string, defaultValue string, isOpen b
 	_, result, err := prompt.Run()
 	if err != nil {
 		logger.Error("Prompt failed", "err", err)
+		os.Exit(1)
 		return ""
 	}
 
@@ -150,8 +151,7 @@ func BoolPrompt(ctx context.Context, label string, defaultValue string, isOpen b
 }
 
 // SelectPrompt asks a single select questions using the label.
-func SingleSelectPrompt(ctx context.Context, label string, items []string) string {
-	logger := ctx.Value("logger").(*slog.Logger)
+func SingleSelectPrompt(logger *slog.Logger, label string, items []string) string {
 	prompt := promptui.Select{
 		Label: label,
 		Items: items,
@@ -160,6 +160,7 @@ func SingleSelectPrompt(ctx context.Context, label string, items []string) strin
 	_, result, err := prompt.Run()
 	if err != nil {
 		logger.Error("Prompt failed", "err", err)
+		os.Exit(1)
 		return ""
 	}
 

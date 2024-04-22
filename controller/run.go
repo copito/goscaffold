@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -107,9 +106,7 @@ func Run(cmd *cobra.Command, args []string) {
 	paramChoice := make(map[string]string)
 
 	// ask questions about config (settle variables)
-	// Loop through all prompt based configs (based on data type)
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, "logger", logger)
+	// Loop through all prompt based configs (based on data type
 	for _, key := range keys {
 
 		item := promptConfig.Items[key]
@@ -124,30 +121,30 @@ func Run(cmd *cobra.Command, args []string) {
 		// Request Data from Users
 		if len(item.Options) >= 1 {
 			itemOptions := core.InterfaceSliceToStringSlice(item.Options)
-			result := core.SingleSelectPrompt(ctx, fmt.Sprintf("Select %s [%s]", key, item.DefaultValue.(string)), itemOptions)
+			result := core.SingleSelectPrompt(logger, fmt.Sprintf("Select %s [%s]", key, item.DefaultValue.(string)), itemOptions)
 			paramChoice[key] = result
 			continue
 		}
 
 		switch v := item.DefaultValue.(type) {
 		case string:
-			result := core.StringPrompt(ctx, fmt.Sprintf("Select %s [%s]", key, v), v)
+			result := core.StringPrompt(logger, fmt.Sprintf("Select %s [%s]", key, v), v)
 			paramChoice[key] = result
 			continue
 		case int:
-			result := core.NumberPrompt(ctx, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
+			result := core.NumberPrompt(logger, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
 			paramChoice[key] = result
 			continue
 		case float32:
-			result := core.NumberPrompt(ctx, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
+			result := core.NumberPrompt(logger, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
 			paramChoice[key] = result
 			continue
 		case float64:
-			result := core.NumberPrompt(ctx, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
+			result := core.NumberPrompt(logger, fmt.Sprintf("Select %s [%v]", key, item.DefaultValue), fmt.Sprintf("%v", item.DefaultValue))
 			paramChoice[key] = result
 			continue
 		case bool:
-			result := core.BoolPrompt(ctx, fmt.Sprintf("Select %s [%t]", key, item.DefaultValue), "FALSE", false)
+			result := core.BoolPrompt(logger, fmt.Sprintf("Select %s [%t]", key, item.DefaultValue), "FALSE", false)
 			paramChoice[key] = result
 			continue
 		default:
